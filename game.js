@@ -11,18 +11,18 @@ const BLOCK_SIZE = 30;
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const COLORS = [
-    null,  // no piece
-    '#FF0000',  // I piece - red
-    '#00FF00',  // O piece - green
-    '#0000FF',  // T piece - blue
-    '#FFFF00',  // L piece - yellow
-    '#FF00FF',  // J piece - magenta
-    '#00FFFF',  // S piece - cyan
-    '#FFA500'   // Z piece - orange
+    '#000000', // empty cell
+    '#FF0000', // I - red
+    '#00FF00', // O - green
+    '#0000FF', // T - blue
+    '#FFFF00', // L - yellow
+    '#FF00FF', // J - magenta
+    '#00FFFF', // S - cyan
+    '#FFA500'  // Z - orange
 ];
 
 const SHAPES = [
-    null,  // no piece
+    null,
     [[1, 1, 1, 1]],     // I
     [[1, 1], [1, 1]],   // O
     [[0, 1, 0], [1, 1, 1]], // T
@@ -42,11 +42,33 @@ let gameLoop = null;
 let gameOver = false;
 let isPaused = false;
 
+// Draw grid lines
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(76, 175, 80, 0.2)';
+    ctx.lineWidth = 0.5;
+
+    // Vertical lines
+    for (let x = 0; x <= BOARD_WIDTH; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * BLOCK_SIZE, 0);
+        ctx.lineTo(x * BLOCK_SIZE, canvas.height);
+        ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let y = 0; y <= BOARD_HEIGHT; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * BLOCK_SIZE);
+        ctx.lineTo(canvas.width, y * BLOCK_SIZE);
+        ctx.stroke();
+    }
+}
+
 class Piece {
-    constructor(shape = null, color = null) {
+    constructor(shape = null) {
         const pieceType = Math.floor(Math.random() * 7) + 1;
         this.shape = shape || SHAPES[pieceType];
-        this.color = color || COLORS[pieceType];
+        this.color = COLORS[pieceType];
         this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
         this.y = 0;
     }
@@ -86,9 +108,17 @@ class Piece {
 function drawBlock(x, y, color, context = ctx) {
     context.fillStyle = color;
     context.strokeStyle = '#FFFFFF';
-    context.lineWidth = 1;
+    context.lineWidth = 2;
+
+    // Draw filled block
     context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+    
+    // Draw block border
     context.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+    
+    // Add highlight effect
+    context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE/2);
 }
 
 function drawPiece(piece, context = ctx, offsetX = 0, offsetY = 0) {
@@ -106,8 +136,11 @@ function drawBoard() {
     // Clear canvas
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw grid
+    drawGrid();
 
-    // Draw board
+    // Draw board pieces
     board.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
@@ -128,9 +161,9 @@ function drawNextPiece() {
     nextCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
 
     if (nextPiece) {
-        const offsetX = 1;
-        const offsetY = 1;
-        drawPiece(nextPiece, nextCtx, offsetX, offsetY);
+        const offsetX = Math.floor((3 - nextPiece.shape[0].length) / 2);
+        const offsetY = Math.floor((3 - nextPiece.shape.length) / 2);
+        drawPiece(nextPiece, nextCtx, offsetX + 1, offsetY + 1);
     }
 }
 
