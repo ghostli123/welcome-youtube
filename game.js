@@ -11,28 +11,28 @@ const BLOCK_SIZE = 30;
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const COLORS = [
-    '#000000',
-    '#FF0000',
-    '#00FF00',
-    '#0000FF',
-    '#FFFF00',
-    '#FF00FF',
-    '#00FFFF',
-    '#FFA500'
+    null,  // no piece
+    '#FF0000',  // I piece - red
+    '#00FF00',  // O piece - green
+    '#0000FF',  // T piece - blue
+    '#FFFF00',  // L piece - yellow
+    '#FF00FF',  // J piece - magenta
+    '#00FFFF',  // S piece - cyan
+    '#FFA500'   // Z piece - orange
 ];
 
 const SHAPES = [
-    [], // empty for easier indexing
+    null,  // no piece
     [[1, 1, 1, 1]],     // I
     [[1, 1], [1, 1]],   // O
-    [[1, 1, 1], [0, 1, 0]], // T
-    [[1, 1, 1], [1, 0, 0]], // L
-    [[1, 1, 1], [0, 0, 1]], // J
-    [[1, 1, 0], [0, 1, 1]], // S
-    [[0, 1, 1], [1, 1, 0]]  // Z
+    [[0, 1, 0], [1, 1, 1]], // T
+    [[0, 0, 1], [1, 1, 1]], // L
+    [[1, 0, 0], [1, 1, 1]], // J
+    [[0, 1, 1], [1, 1, 0]], // S
+    [[1, 1, 0], [0, 1, 1]]  // Z
 ];
 
-let board = [];
+let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
 let score = 0;
 let lines = 0;
 let level = 1;
@@ -43,9 +43,10 @@ let gameOver = false;
 let isPaused = false;
 
 class Piece {
-    constructor(shape = null) {
-        this.shape = shape || SHAPES[Math.floor(Math.random() * (SHAPES.length - 1)) + 1];
-        this.color = COLORS[Math.floor(Math.random() * (COLORS.length - 1)) + 1];
+    constructor(shape = null, color = null) {
+        const pieceType = Math.floor(Math.random() * 7) + 1;
+        this.shape = shape || SHAPES[pieceType];
+        this.color = color || COLORS[pieceType];
         this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
         this.y = 0;
     }
@@ -82,19 +83,16 @@ class Piece {
     }
 }
 
-function createBoard() {
-    board = [];
-    for(let y = 0; y < BOARD_HEIGHT; y++) {
-        board.push(new Array(BOARD_WIDTH).fill(0));
-    }
-}
-
 function drawBlock(x, y, color, context = ctx) {
     context.fillStyle = color;
+    context.strokeStyle = '#FFFFFF';
+    context.lineWidth = 1;
     context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+    context.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
 }
 
 function drawPiece(piece, context = ctx, offsetX = 0, offsetY = 0) {
+    if (!piece) return;
     piece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
@@ -105,9 +103,11 @@ function drawPiece(piece, context = ctx, offsetX = 0, offsetY = 0) {
 }
 
 function drawBoard() {
-    ctx.fillStyle = '#000';
+    // Clear canvas
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Draw board
     board.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
@@ -116,19 +116,21 @@ function drawBoard() {
         });
     });
 
+    // Draw current piece
     if (currentPiece) {
         drawPiece(currentPiece);
     }
 }
 
 function drawNextPiece() {
-    nextCtx.fillStyle = '#000';
+    // Clear next piece canvas
+    nextCtx.fillStyle = '#000000';
     nextCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
 
     if (nextPiece) {
-        const offsetX = Math.floor((3 - nextPiece.shape[0].length) / 2);
-        const offsetY = Math.floor((3 - nextPiece.shape.length) / 2);
-        drawPiece(nextPiece, nextCtx, offsetX + 1, offsetY + 1);
+        const offsetX = 1;
+        const offsetY = 1;
+        drawPiece(nextPiece, nextCtx, offsetX, offsetY);
     }
 }
 
@@ -136,7 +138,8 @@ function mergePiece() {
     currentPiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
-                board[currentPiece.y + y][currentPiece.x + x] = COLORS.indexOf(currentPiece.color);
+                const pieceType = COLORS.indexOf(currentPiece.color);
+                board[currentPiece.y + y][currentPiece.x + x] = pieceType;
             }
         });
     });
@@ -246,7 +249,7 @@ function togglePause() {
 
 function startGame() {
     // Reset game state
-    createBoard();
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
     score = 0;
     lines = 0;
     level = 1;
@@ -261,11 +264,17 @@ function startGame() {
     // Clear any existing game loop
     if (gameLoop) clearInterval(gameLoop);
     
-    // Start new game
+    // Initialize pieces
     nextPiece = new Piece();
     newPiece();
+    
+    // Start game loop
     gameLoop = setInterval(dropPiece, 1000);
     startButton.textContent = 'Pause';
+    startButton.disabled = false;
+    
+    // Initial draw
+    drawBoard();
 }
 
 // Event Listeners
@@ -279,5 +288,4 @@ startButton.addEventListener('click', () => {
 });
 
 // Initial setup
-createBoard();
 drawBoard();
