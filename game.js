@@ -23,6 +23,8 @@ const TARGET_TYPES = {
 };
 
 function createTarget() {
+    if (!gameActive) return;
+
     const target = document.createElement('div');
     target.className = 'target';
     
@@ -64,7 +66,7 @@ function createTarget() {
             gameArea.removeChild(target);
             targets = targets.filter(t => t !== target);
         }
-    }, 2000 - (level * 200));
+    }, 2000 - (level * 100));
 }
 
 function moveTargetRandomly(target) {
@@ -133,7 +135,7 @@ function checkLevelProgress() {
         currentLevelElement.textContent = level;
         // Increase target spawn rate with level
         clearInterval(targetInterval);
-        targetInterval = setInterval(createTarget, 1000 - (level * 50));
+        targetInterval = setInterval(createTarget, Math.max(500, 1000 - (level * 50)));
     }
 }
 
