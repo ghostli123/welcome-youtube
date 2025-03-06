@@ -25,9 +25,15 @@ body {
     margin-bottom: 20px;
 }
 
-.score-container, .timer-container {
-    font-size: 1.2em;
+.stats-container {
+    display: flex;
+    justify-content: space-around;
     margin: 10px 0;
+    font-size: 1.2em;
+}
+
+.multiplier {
+    color: #ff6b6b;
 }
 
 #game-area {
@@ -39,18 +45,48 @@ body {
     overflow: hidden;
 }
 
-#target {
+.target {
     width: 40px;
     height: 40px;
-    background-color: #ff4444;
     border-radius: 50%;
     position: absolute;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: transform 0.2s;
 }
 
-#target:hover {
-    background-color: #ff6666;
+.target:hover {
+    transform: scale(1.1);
+}
+
+.target.normal {
+    background-color: #ff4444;
+}
+
+.target.bonus {
+    background-color: #ffd700;
+    animation: pulse 1s infinite;
+}
+
+.target.speed {
+    background-color: #4CAF50;
+    width: 30px;
+    height: 30px;
+}
+
+.target.penalty {
+    background-color: #333;
+    animation: rotate 2s infinite linear;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 #start-btn {
@@ -68,4 +104,31 @@ body {
 
 #start-btn:hover {
     background-color: #45a049;
+}
+
+.level-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+.power-up-active {
+    position: absolute;
+    top: 40px;
+    right: 10px;
+    background-color: #ffd700;
+    color: black;
+    padding: 5px 10px;
+    border-radius: 15px;
+    animation: fadeInOut 2s infinite;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
 }

@@ -3,24 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Click the Target Game</title>
+    <title>Enhanced Target Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="game-container">
         <div class="header">
-            <h1>Click the Target</h1>
-            <div class="score-container">
-                <span>Score: </span>
-                <span id="score">0</span>
-            </div>
-            <div class="timer-container">
-                <span>Time: </span>
-                <span id="timer">30</span>s
+            <h1>Target Challenge</h1>
+            <div class="stats-container">
+                <div>
+                    <span>Score: </span>
+                    <span id="score">0</span>
+                </div>
+                <div>
+                    <span>Time: </span>
+                    <span id="timer">30</span>s
+                </div>
+                <div>
+                    <span>Level: </span>
+                    <span id="level">1</span>
+                </div>
+                <div>
+                    <span>Multiplier: </span>
+                    <span id="multiplier" class="multiplier">x1</span>
+                </div>
             </div>
         </div>
         <div id="game-area">
-            <div id="target"></div>
+            <div class="level-indicator">Level <span id="current-level">1</span></div>
         </div>
         <button id="start-btn">Start Game</button>
     </div>
