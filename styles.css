@@ -29,6 +29,9 @@ body {
     justify-content: space-between;
     width: 100%;
     margin-bottom: 20px;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 5px;
 }
 
 .score-section {
@@ -38,19 +41,30 @@ body {
 .score-section h2, .score-section h3 {
     margin: 5px 0;
     color: #4CAF50;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 .next-piece {
     text-align: center;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 5px;
+    border: 2px solid #4CAF50;
+}
+
+.next-piece h3 {
+    color: #4CAF50;
+    margin-bottom: 10px;
 }
 
 #game {
-    border: 2px solid #4CAF50;
+    border: 3px solid #4CAF50;
     background-color: #000;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
 }
 
 #nextPiece {
-    border: 1px solid #4CAF50;
+    border: 2px solid #4CAF50;
     background-color: #000;
     margin-top: 10px;
 }
@@ -58,22 +72,34 @@ body {
 .controls {
     margin-top: 20px;
     text-align: center;
+    width: 100%;
 }
 
 #start-btn {
-    padding: 10px 30px;
+    padding: 12px 40px;
     font-size: 1.2em;
     background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.2s;
-    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 #start-btn:hover {
     background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+}
+
+#start-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .instructions {
@@ -82,11 +108,13 @@ body {
     padding: 15px;
     background-color: #333;
     border-radius: 5px;
+    border: 1px solid #4CAF50;
 }
 
 .instructions p {
     margin-bottom: 10px;
     color: #4CAF50;
+    font-weight: bold;
 }
 
 .instructions ul {
@@ -94,6 +122,21 @@ body {
 }
 
 .instructions li {
-    margin: 5px 0;
+    margin: 8px 0;
     color: #ddd;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+}
+
+.instructions li:before {
+    content: "•";
+    color: #4CAF50;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* Grid styling */
+.grid-cell {
+    border: 1px solid rgba(76, 175, 80, 0.1);
 }
