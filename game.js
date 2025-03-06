@@ -10,27 +10,44 @@ const startButton = document.getElementById('start-btn');
 const BLOCK_SIZE = 30;
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
-const COLORS = [
-    '#000000', // empty cell
-    '#FF0000', // I - red
-    '#00FF00', // O - green
-    '#0000FF', // T - blue
-    '#FFFF00', // L - yellow
-    '#FF00FF', // J - magenta
-    '#00FFFF', // S - cyan
-    '#FFA500'  // Z - orange
-];
 
-const SHAPES = [
-    null,
-    [[1, 1, 1, 1]],     // I
-    [[1, 1], [1, 1]],   // O
-    [[0, 1, 0], [1, 1, 1]], // T
-    [[0, 0, 1], [1, 1, 1]], // L
-    [[1, 0, 0], [1, 1, 1]], // J
-    [[0, 1, 1], [1, 1, 0]], // S
-    [[1, 1, 0], [0, 1, 1]]  // Z
-];
+// Define tetrominoes and their colors
+const TETROMINOES = {
+    I: {
+        shape: [[1, 1, 1, 1]],
+        color: '#00f0f0'
+    },
+    O: {
+        shape: [[1, 1],
+                [1, 1]],
+        color: '#f0f000'
+    },
+    T: {
+        shape: [[0, 1, 0],
+                [1, 1, 1]],
+        color: '#a000f0'
+    },
+    L: {
+        shape: [[0, 0, 1],
+                [1, 1, 1]],
+        color: '#f0a000'
+    },
+    J: {
+        shape: [[1, 0, 0],
+                [1, 1, 1]],
+        color: '#0000f0'
+    },
+    S: {
+        shape: [[0, 1, 1],
+                [1, 1, 0]],
+        color: '#00f000'
+    },
+    Z: {
+        shape: [[1, 1, 0],
+                [0, 1, 1]],
+        color: '#f00000'
+    }
+};
 
 let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
 let score = 0;
@@ -42,33 +59,15 @@ let gameLoop = null;
 let gameOver = false;
 let isPaused = false;
 
-// Draw grid lines
-function drawGrid() {
-    ctx.strokeStyle = 'rgba(76, 175, 80, 0.2)';
-    ctx.lineWidth = 0.5;
-
-    // Vertical lines
-    for (let x = 0; x <= BOARD_WIDTH; x++) {
-        ctx.beginPath();
-        ctx.moveTo(x * BLOCK_SIZE, 0);
-        ctx.lineTo(x * BLOCK_SIZE, canvas.height);
-        ctx.stroke();
-    }
-
-    // Horizontal lines
-    for (let y = 0; y <= BOARD_HEIGHT; y++) {
-        ctx.beginPath();
-        ctx.moveTo(0, y * BLOCK_SIZE);
-        ctx.lineTo(canvas.width, y * BLOCK_SIZE);
-        ctx.stroke();
-    }
-}
-
 class Piece {
-    constructor(shape = null) {
-        const pieceType = Math.floor(Math.random() * 7) + 1;
-        this.shape = shape || SHAPES[pieceType];
-        this.color = COLORS[pieceType];
+    constructor() {
+        // Randomly select a tetromino
+        const pieces = Object.keys(TETROMINOES);
+        const tetromino = TETROMINOES[pieces[Math.floor(Math.random() * pieces.length)]];
+        this.shape = tetromino.shape;
+        this.color = tetromino.color;
+        
+        // Starting position
         this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
         this.y = 0;
     }
@@ -116,9 +115,30 @@ function drawBlock(x, y, color, context = ctx) {
     // Draw block border
     context.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
     
-    // Add highlight effect
-    context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE/2);
+    // Add 3D effect
+    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE/3);
+}
+
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 0.5;
+
+    // Vertical lines
+    for (let x = 0; x <= BOARD_WIDTH; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * BLOCK_SIZE, 0);
+        ctx.lineTo(x * BLOCK_SIZE, canvas.height);
+        ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let y = 0; y <= BOARD_HEIGHT; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * BLOCK_SIZE);
+        ctx.lineTo(canvas.width, y * BLOCK_SIZE);
+        ctx.stroke();
+    }
 }
 
 function drawPiece(piece, context = ctx, offsetX = 0, offsetY = 0) {
@@ -144,7 +164,7 @@ function drawBoard() {
     board.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
-                drawBlock(x, y, COLORS[value]);
+                drawBlock(x, y, value);
             }
         });
     });
@@ -171,8 +191,7 @@ function mergePiece() {
     currentPiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value) {
-                const pieceType = COLORS.indexOf(currentPiece.color);
-                board[currentPiece.y + y][currentPiece.x + x] = pieceType;
+                board[currentPiece.y + y][currentPiece.x + x] = currentPiece.color;
             }
         });
     });
