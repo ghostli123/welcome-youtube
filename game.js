@@ -1,192 +1,283 @@
-const gameArea = document.getElementById('game-area');
+const canvas = document.getElementById('game');
+const nextPieceCanvas = document.getElementById('nextPiece');
+const ctx = canvas.getContext('2d');
+const nextCtx = nextPieceCanvas.getContext('2d');
 const scoreElement = document.getElementById('score');
-const timerElement = document.getElementById('timer');
-const startButton = document.getElementById('start-btn');
 const levelElement = document.getElementById('level');
-const multiplierElement = document.getElementById('multiplier');
-const currentLevelElement = document.getElementById('current-level');
+const linesElement = document.getElementById('lines');
+const startButton = document.getElementById('start-btn');
 
+const BLOCK_SIZE = 30;
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+const COLORS = [
+    '#000000',
+    '#FF0000',
+    '#00FF00',
+    '#0000FF',
+    '#FFFF00',
+    '#FF00FF',
+    '#00FFFF',
+    '#FFA500'
+];
+
+const SHAPES = [
+    [], // empty for easier indexing
+    [[1, 1, 1, 1]],     // I
+    [[1, 1], [1, 1]],   // O
+    [[1, 1, 1], [0, 1, 0]], // T
+    [[1, 1, 1], [1, 0, 0]], // L
+    [[1, 1, 1], [0, 0, 1]], // J
+    [[1, 1, 0], [0, 1, 1]], // S
+    [[0, 1, 1], [1, 1, 0]]  // Z
+];
+
+let board = [];
 let score = 0;
-let timeLeft = 30;
-let gameInterval;
-let targetInterval;
-let gameActive = false;
+let lines = 0;
 let level = 1;
-let scoreMultiplier = 1;
-let targets = [];
+let currentPiece = null;
+let nextPiece = null;
+let gameLoop = null;
+let gameOver = false;
+let isPaused = false;
 
-const TARGET_TYPES = {
-    NORMAL: { class: 'normal', points: 1, probability: 0.6 },
-    BONUS: { class: 'bonus', points: 3, probability: 0.2 },
-    SPEED: { class: 'speed', points: 2, probability: 0.15 },
-    PENALTY: { class: 'penalty', points: -2, probability: 0.05 }
-};
-
-function createTarget() {
-    if (!gameActive) return;
-
-    const target = document.createElement('div');
-    target.className = 'target';
-    
-    // Determine target type based on probabilities
-    const rand = Math.random();
-    let type;
-    if (rand < TARGET_TYPES.NORMAL.probability) {
-        type = TARGET_TYPES.NORMAL;
-    } else if (rand < TARGET_TYPES.NORMAL.probability + TARGET_TYPES.BONUS.probability) {
-        type = TARGET_TYPES.BONUS;
-    } else if (rand < TARGET_TYPES.NORMAL.probability + TARGET_TYPES.BONUS.probability + TARGET_TYPES.SPEED.probability) {
-        type = TARGET_TYPES.SPEED;
-    } else {
-        type = TARGET_TYPES.PENALTY;
+class Piece {
+    constructor(shape = null) {
+        this.shape = shape || SHAPES[Math.floor(Math.random() * (SHAPES.length - 1)) + 1];
+        this.color = COLORS[Math.floor(Math.random() * (COLORS.length - 1)) + 1];
+        this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+        this.y = 0;
     }
-    
-    target.classList.add(type.class);
-    target.dataset.points = type.points;
-    
-    const maxX = gameArea.clientWidth - 40;
-    const maxY = gameArea.clientHeight - 40;
-    const randomX = Math.floor(Math.random() * maxX);
-    const randomY = Math.floor(Math.random() * maxY);
-    
-    target.style.left = randomX + 'px';
-    target.style.top = randomY + 'px';
-    
-    if (type === TARGET_TYPES.SPEED) {
-        moveTargetRandomly(target);
-    }
-    
-    target.addEventListener('click', () => targetClicked(target));
-    gameArea.appendChild(target);
-    targets.push(target);
-    
-    // Remove target after random time if not clicked
-    setTimeout(() => {
-        if (target.parentNode === gameArea) {
-            gameArea.removeChild(target);
-            targets = targets.filter(t => t !== target);
+
+    rotate() {
+        const newShape = [];
+        for(let i = 0; i < this.shape[0].length; i++) {
+            newShape.push([]);
+            for(let j = this.shape.length - 1; j >= 0; j--) {
+                newShape[i].push(this.shape[j][i]);
+            }
         }
-    }, 2000 - (level * 100));
-}
-
-function moveTargetRandomly(target) {
-    const move = () => {
-        if (!gameActive || !target.parentNode) return;
-        
-        const maxX = gameArea.clientWidth - 40;
-        const maxY = gameArea.clientHeight - 40;
-        const newX = Math.floor(Math.random() * maxX);
-        const newY = Math.floor(Math.random() * maxY);
-        
-        target.style.left = newX + 'px';
-        target.style.top = newY + 'px';
-        
-        setTimeout(move, 1000);
-    };
-    move();
-}
-
-function targetClicked(target) {
-    if (!gameActive) return;
-    
-    const points = parseInt(target.dataset.points);
-    score += points * scoreMultiplier;
-    scoreElement.textContent = score;
-    
-    // Special effects based on target type
-    if (target.classList.contains('bonus')) {
-        activateScoreMultiplier();
-    } else if (target.classList.contains('speed')) {
-        addExtraTime();
-    }
-    
-    gameArea.removeChild(target);
-    targets = targets.filter(t => t !== target);
-    
-    checkLevelProgress();
-}
-
-function activateScoreMultiplier() {
-    scoreMultiplier = 2;
-    multiplierElement.textContent = 'x2';
-    const powerUpIndicator = document.createElement('div');
-    powerUpIndicator.className = 'power-up-active';
-    powerUpIndicator.textContent = '2x Score!';
-    gameArea.appendChild(powerUpIndicator);
-    
-    setTimeout(() => {
-        scoreMultiplier = 1;
-        multiplierElement.textContent = 'x1';
-        if (powerUpIndicator.parentNode) {
-            gameArea.removeChild(powerUpIndicator);
+        if (!this.collision(0, 0, newShape)) {
+            this.shape = newShape;
         }
-    }, 5000);
+    }
+
+    collision(offsetX, offsetY, shape = this.shape) {
+        for(let y = 0; y < shape.length; y++) {
+            for(let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x]) {
+                    const newX = this.x + x + offsetX;
+                    const newY = this.y + y + offsetY;
+                    if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
+                        return true;
+                    }
+                    if (newY >= 0 && board[newY][newX]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }
 
-function addExtraTime() {
-    timeLeft += 3;
-    timerElement.textContent = timeLeft;
+function createBoard() {
+    board = [];
+    for(let y = 0; y < BOARD_HEIGHT; y++) {
+        board.push(new Array(BOARD_WIDTH).fill(0));
+    }
 }
 
-function checkLevelProgress() {
-    if (score >= level * 10) {
-        level++;
+function drawBlock(x, y, color, context = ctx) {
+    context.fillStyle = color;
+    context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+}
+
+function drawPiece(piece, context = ctx, offsetX = 0, offsetY = 0) {
+    piece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                drawBlock(piece.x + x + offsetX, piece.y + y + offsetY, piece.color, context);
+            }
+        });
+    });
+}
+
+function drawBoard() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    board.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                drawBlock(x, y, COLORS[value]);
+            }
+        });
+    });
+
+    if (currentPiece) {
+        drawPiece(currentPiece);
+    }
+}
+
+function drawNextPiece() {
+    nextCtx.fillStyle = '#000';
+    nextCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+
+    if (nextPiece) {
+        const offsetX = Math.floor((3 - nextPiece.shape[0].length) / 2);
+        const offsetY = Math.floor((3 - nextPiece.shape.length) / 2);
+        drawPiece(nextPiece, nextCtx, offsetX + 1, offsetY + 1);
+    }
+}
+
+function mergePiece() {
+    currentPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                board[currentPiece.y + y][currentPiece.x + x] = COLORS.indexOf(currentPiece.color);
+            }
+        });
+    });
+}
+
+function clearLines() {
+    let linesCleared = 0;
+    for(let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell)) {
+            board.splice(y, 1);
+            board.unshift(new Array(BOARD_WIDTH).fill(0));
+            linesCleared++;
+            y++;
+        }
+    }
+    if (linesCleared) {
+        lines += linesCleared;
+        score += linesCleared * 100 * level;
+        level = Math.floor(lines / 10) + 1;
+        scoreElement.textContent = score;
         levelElement.textContent = level;
-        currentLevelElement.textContent = level;
-        // Increase target spawn rate with level
-        clearInterval(targetInterval);
-        targetInterval = setInterval(createTarget, Math.max(500, 1000 - (level * 50)));
+        linesElement.textContent = lines;
     }
 }
 
-function updateTimer() {
-    timerElement.textContent = timeLeft;
-    if (timeLeft <= 0) {
-        endGame();
+function newPiece() {
+    currentPiece = nextPiece || new Piece();
+    nextPiece = new Piece();
+    drawNextPiece();
+
+    if (currentPiece.collision(0, 0)) {
+        gameOver = true;
+        clearInterval(gameLoop);
+        startButton.textContent = 'Game Over! Play Again?';
+        startButton.disabled = false;
     }
-    timeLeft--;
+}
+
+function dropPiece() {
+    if (!currentPiece.collision(0, 1)) {
+        currentPiece.y++;
+    } else {
+        mergePiece();
+        clearLines();
+        newPiece();
+    }
+    drawBoard();
+}
+
+function moveLeft() {
+    if (!currentPiece.collision(-1, 0)) {
+        currentPiece.x--;
+        drawBoard();
+    }
+}
+
+function moveRight() {
+    if (!currentPiece.collision(1, 0)) {
+        currentPiece.x++;
+        drawBoard();
+    }
+}
+
+function hardDrop() {
+    while (!currentPiece.collision(0, 1)) {
+        currentPiece.y++;
+    }
+    dropPiece();
+}
+
+function handleKeyPress(event) {
+    if (gameOver || isPaused) return;
+
+    switch(event.keyCode) {
+        case 37: // Left arrow
+            moveLeft();
+            break;
+        case 39: // Right arrow
+            moveRight();
+            break;
+        case 40: // Down arrow
+            dropPiece();
+            break;
+        case 38: // Up arrow
+            currentPiece.rotate();
+            drawBoard();
+            break;
+        case 32: // Space
+            hardDrop();
+            break;
+        case 80: // P key
+            togglePause();
+            break;
+    }
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    if (isPaused) {
+        clearInterval(gameLoop);
+        startButton.textContent = 'Resume';
+    } else {
+        gameLoop = setInterval(dropPiece, Math.max(100, 1000 - (level * 100)));
+        startButton.textContent = 'Pause';
+    }
 }
 
 function startGame() {
-    if (gameActive) return;
-    
     // Reset game state
-    gameActive = true;
+    createBoard();
     score = 0;
-    timeLeft = 30;
+    lines = 0;
     level = 1;
-    scoreMultiplier = 1;
-    targets.forEach(target => target.remove());
-    targets = [];
+    gameOver = false;
+    isPaused = false;
     
-    // Reset display elements
-    scoreElement.textContent = score;
-    timerElement.textContent = timeLeft;
-    levelElement.textContent = level;
-    currentLevelElement.textContent = level;
-    multiplierElement.textContent = 'x1';
+    // Reset display
+    scoreElement.textContent = '0';
+    levelElement.textContent = '1';
+    linesElement.textContent = '0';
     
-    startButton.textContent = 'Game In Progress';
-    startButton.disabled = true;
+    // Clear any existing game loop
+    if (gameLoop) clearInterval(gameLoop);
     
-    // Start game intervals
-    gameInterval = setInterval(updateTimer, 1000);
-    targetInterval = setInterval(createTarget, 1000);
+    // Start new game
+    nextPiece = new Piece();
+    newPiece();
+    gameLoop = setInterval(dropPiece, 1000);
+    startButton.textContent = 'Pause';
 }
 
-function endGame() {
-    gameActive = false;
-    clearInterval(gameInterval);
-    clearInterval(targetInterval);
-    startButton.textContent = 'Play Again';
-    startButton.disabled = false;
-    
-    // Remove all remaining targets
-    targets.forEach(target => target.remove());
-    targets = [];
-    
-    const message = `Game Over!\nFinal Score: ${score}\nLevel Reached: ${level}`;
-    setTimeout(() => alert(message), 100);
-}
+// Event Listeners
+document.addEventListener('keydown', handleKeyPress);
+startButton.addEventListener('click', () => {
+    if (gameOver) {
+        startGame();
+    } else {
+        togglePause();
+    }
+});
 
-startButton.addEventListener('click', startGame);
+// Initial setup
+createBoard();
+drawBoard();
